@@ -1,0 +1,388 @@
+
+package org.usfirst.frc.team4522.robot;
+
+import com.ctre.phoenix.ParamEnum;
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.FeedbackDevice;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+
+//import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.IterativeRobot;
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Solenoid;
+import edu.wpi.first.wpilibj.SpeedControllerGroup;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.interfaces.Potentiometer;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+public class Robot extends IterativeRobot {
+	
+	private static final String kDefaultAuto = "Default";
+	private static final String kCustomAuto = "My Auto";
+//	private String m_autoSelected;
+	private SendableChooser<String> m_chooser = new SendableChooser<>();
+	
+	private static final int RIGHT_MASTER_TALON_PORT = 1;    
+    private static final int RIGHT_FOLLOWER1_TALON_PORT = 2;    
+    //private static final int
+    private static final int LEFT_MASTER_TALON_PORT = 4;
+	private static final int LEFT_FOLLOWER1_TALON_PORT = 5;
+	//private static final int
+	//private static final int
+	private static final int ELEVATOR_MASTER_TALON_PORT = 8;
+    private static final int RIGHT_INTAKE_TALON_PORT = 9;
+    //private static final int
+    private static final int LEFT_INTAKE_TALON_PORT = 11;
+    private static final int ELEVATOR_FOLLOWER_TALON_PORT = 12; 
+    
+    boolean mActionStateI = false;
+    boolean mButtonStateI = false;
+    
+    boolean mActionStateC = false;
+    boolean mButtonStateC = false;
+    
+    boolean mActionStateE = false;
+    boolean mButtonStateE = false;
+    
+    boolean mElevatorToggleC = false;
+    boolean mAutoIntakePreviousValue = false;
+    
+    boolean mActionStateB = false;
+    boolean mButtonStateB = false;
+    
+    boolean mActionStateBo = false;
+    boolean mButtonStateBo = false;
+    
+    boolean mActionStateIS = false;
+    boolean mButtonStateIS = false;
+        
+    boolean AutoIntake = false;
+    
+    boolean mIntakeIn = false;
+    
+    boolean mIntakeS = false;
+    
+    boolean mElevatorM = false;
+    
+    boolean mElevatorMB = false;
+    
+    WPI_TalonSRX leftF1;
+    WPI_TalonSRX leftM;
+    
+    WPI_TalonSRX rightF1;
+    WPI_TalonSRX rightM;
+    
+    WPI_TalonSRX LIntake;
+    WPI_TalonSRX RIntake;
+    
+    WPI_TalonSRX ElevatorM;  
+    WPI_TalonSRX ElevatorF;
+    
+    Joystick drive_joy;
+    Joystick ButtonBoard1;
+    Joystick ButtonBoard2;
+    
+    SpeedControllerGroup leftDrive;
+    SpeedControllerGroup rightDrive;
+    
+    DifferentialDrive differentialDrive;
+
+   Potentiometer Pot;
+   
+   DoubleSolenoid ElevatorBrake;   
+   
+   Solenoid Clamp;
+   Solenoid Intake;
+   Solenoid BuddyBar;
+   Solenoid Boost;  
+   
+	@Override
+	public void robotInit() {
+		m_chooser.addDefault("Default Auto", kDefaultAuto);
+		m_chooser.addObject("My Auto", kCustomAuto);
+		SmartDashboard.putData("Auto choices", m_chooser);
+		
+		leftF1 = new WPI_TalonSRX(LEFT_FOLLOWER1_TALON_PORT);
+		rightF1 = new WPI_TalonSRX(RIGHT_FOLLOWER1_TALON_PORT);
+		
+		leftM = new WPI_TalonSRX(LEFT_MASTER_TALON_PORT);
+		rightM = new WPI_TalonSRX(RIGHT_MASTER_TALON_PORT);
+		
+		LIntake = new WPI_TalonSRX(LEFT_INTAKE_TALON_PORT);
+		RIntake = new WPI_TalonSRX(RIGHT_INTAKE_TALON_PORT);
+		
+		ElevatorF = new WPI_TalonSRX(ELEVATOR_FOLLOWER_TALON_PORT); 
+		ElevatorM = new WPI_TalonSRX(ELEVATOR_MASTER_TALON_PORT);
+		
+        leftF1.set(ControlMode.Follower, LEFT_MASTER_TALON_PORT);
+        rightF1.set(ControlMode.Follower, RIGHT_MASTER_TALON_PORT);
+        
+        ElevatorF.set(com.ctre.phoenix.motorcontrol.ControlMode.Follower, ELEVATOR_MASTER_TALON_PORT);
+      //  ElevatorM.setInverted(true);
+      //  ElevatorF.setInverted(true);
+        
+        leftDrive = new SpeedControllerGroup(leftM);
+        rightDrive = new SpeedControllerGroup(rightM);
+        
+        differentialDrive = new DifferentialDrive(rightDrive, leftDrive);
+        differentialDrive.setSafetyEnabled(isEnabled());
+        
+        leftM.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder, 0,0);
+        rightM.configSelectedFeedbackSensor(FeedbackDevice.QuadEncoder, 0,0);
+        
+        ElevatorM.configSelectedFeedbackSensor(FeedbackDevice.Analog,0,0);
+        ElevatorM.configSetParameter(ParamEnum.eFeedbackNotContinuous, 1, 0x00, 0x00, 0x00); 
+        
+    /*    ElevatorM.selectProfileSlot(0, 0);
+        ElevatorM.config_kF(0, 0.2, 10);
+        ElevatorM.config_kP(0, 8, 10);
+        ElevatorM.config_kI(0, 0.01, 10);
+        ElevatorM.config_kD(0, 0, 10);
+        */
+        ElevatorM.setSensorPhase(true); 
+        
+        rightM.setSensorPhase(false);
+        leftM.setSensorPhase(true);
+          
+        drive_joy = new Joystick(0);
+        ButtonBoard1 = new Joystick(1);
+        ButtonBoard2 = new Joystick(2);
+        
+        //drive_joy2 = new Joystick(1); 
+        
+       // mCompressor = new Compressor(0); 
+       // mCompressor.setClosedLoopControl(true);
+        
+        ElevatorBrake = new DoubleSolenoid(0,1);
+        
+		Clamp = new Solenoid(4);
+		BuddyBar = new Solenoid(5);
+		Intake = new Solenoid(6);
+		Boost = new Solenoid(7);
+		
+	
+		
+	}
+
+	//protected void execute() {
+	//	mActionStateI = !mActionStateI;
+		
+	
+	
+	
+	@Override
+  	 public void autonomousInit() {
+		//Right is master
+		
+		//leftM.set(ControlMode.Follower, RIGHT_MASTER_TALON_PORT);
+		
+		leftM.getSensorCollection().setQuadraturePosition(0, 0);
+		rightM.getSensorCollection().setQuadraturePosition(0, 0);
+		
+		
+	}
+
+	@Override
+	public void autonomousPeriodic() {
+		
+		leftM.set(ControlMode.Position, 3200);
+		rightM.set(ControlMode.Position, -3000);
+		
+		System.out.println(-leftM.getSensorCollection().getQuadraturePosition());
+	
+		System.out.println(-rightM.getSensorCollection().getQuadraturePosition()); 
+		
+		if(leftM.getSelectedSensorPosition() >= 3200) {
+			leftM.set(0);
+		}
+		
+		if(rightM.getSelectedSensorPosition() <= -3000) {
+			rightM.set(0);
+		}
+		
+		if(isOperatorControl() && isEnabled()) {	
+	differentialDrive.arcadeDrive(drive_joy.getY(), drive_joy.getRawAxis(4));
+		}
+	}
+
+	
+	@Override
+	public void teleopPeriodic() {	
+
+   /*
+	System.out.println(String.valueOf(leftM.getSensorCollection().getQuadratureVelocity()) + " | " + 
+	String.valueOf(rightM.getSensorCollection().getQuadratureVelocity()));
+	System.out.println(String.valueOf(drive_joy.getRawAxis(5)));
+	System.out.println(String.valueOf(ElevatorM.getSensorCollection().getAnalogIn()));
+	
+	System.out.println("Sensor Position: " + String.valueOf(ElevatorM.getSelectedSensorPosition(0)));
+	System.out.println(Clamp.get());
+	System.out.println("Closed Loop Error: " + String.valueOf(ElevatorM.getClosedLoopError()));
+	System.out.println("Closed Loop Target: " + String.valueOf(ElevatorM.getClosedLoopTarget()));
+	System.out.println("Motor Output %: " + String.valueOf(ElevatorM.getMotorOutputPercent()*100));
+	*/
+		
+	System.out.println("RightEncoderCounts: " + String.valueOf(rightM.getSelectedSensorPosition(0)));
+	System.out.println("LeftEncoderCounts: " + String.valueOf(leftM.getSelectedSensorPosition(0)));
+	
+	if(isOperatorControl() && isEnabled()) {	
+		differentialDrive.arcadeDrive(drive_joy.getY(), drive_joy.getRawAxis(4));
+	}
+	
+	
+	if(drive_joy.getRawButton(1)) {
+    	rightM.getSensorCollection().setQuadraturePosition(0, 0);
+    	leftM.getSensorCollection().setQuadraturePosition(0, 0);
+    }
+     
+    	if(ButtonBoard1.getRawButton(1)) {
+    		ElevatorM.set(ControlMode.Position, 900);
+    	 
+    	} 
+    	
+    	if(ButtonBoard1.getRawButton(2)) {
+    		ElevatorM.set(ControlMode.Position, 750);
+    	 
+    	} 
+    	
+    	if(ButtonBoard1.getRawButton(3)) {
+    		ElevatorM.set(ControlMode.Position, 550);
+    	 
+    	} 
+    	
+    	if(ButtonBoard1.getRawButton(4)) {
+    		ElevatorM.set(ControlMode.Position, 400);
+    	}
+    	
+    	if(ButtonBoard2.getRawButton(4) || AutoIntake) {
+    		ElevatorM.set(ControlMode.Position, 307);
+    	} 
+    	
+    	
+        if(mButtonStateI != ButtonBoard1.getRawButton(9)){
+            if(mButtonStateI) mActionStateI = !mActionStateI;
+            mButtonStateI = !mButtonStateI;
+        }
+            if(mActionStateI){
+            	
+        		if (ElevatorM.getSelectedSensorPosition() < 330) {
+            		mIntakeS = true;       		
+            		mIntakeIn = true;
+        		}else {
+            		mIntakeS = false;       		
+            		mIntakeIn = false;
+        		}
+        		
+        		
+            	mElevatorToggleC = true;
+        		AutoIntake = true;
+        		
+            }else{
+            	mElevatorToggleC = false;
+        		mIntakeS = false;
+        		mIntakeIn = false;  
+        		AutoIntake = false;
+        		mAutoIntakePreviousValue = mActionStateI;
+            }
+           
+            
+        if (ButtonBoard2.getRawButton(2) || mIntakeS) {
+           	Intake.set(true);
+			}else{
+				Intake.set(false);
+			}
+            
+    	if (mIntakeIn || ButtonBoard2.getRawButton(3)) {
+    		RIntake.set(1);
+    		LIntake.set(-1);
+    	} else if (ButtonBoard2.getRawButton(5)) {
+    		RIntake.set(-1);
+    		LIntake.set(1);
+    	} else {
+   		RIntake.set(0);
+    		LIntake.set(0);
+    	}
+            
+            
+            
+            
+    	if(mButtonStateB != drive_joy.getRawButton(8)) {
+    		
+    	if(mButtonStateB) mActionStateB = !mActionStateB;
+    		mButtonStateB = !mButtonStateB;  		
+    	}
+    	
+    	 if(mActionStateB) {
+    		BuddyBar.set(true);
+    	 } else {
+    		BuddyBar.set(false);    
+    	 }
+    	
+    	 
+    	
+          if(ButtonBoard1.getRawButton(5)) {
+           ElevatorBrake.set(DoubleSolenoid.Value.kReverse); 
+    	 } else {
+    		ElevatorBrake.set(DoubleSolenoid.Value.kForward);  
+    	 } 
+         
+          
+          
+         if(mButtonStateBo != ButtonBoard2.getRawButton(1)) {
+        	 
+        	 if(mButtonStateBo) mActionStateBo = !mActionStateBo;
+        	 	mButtonStateBo = !mButtonStateBo;
+        	
+         }
+          if(mActionStateBo) {
+        	  Boost.set(true);
+          }else {
+        	  Boost.set(false);
+          }
+          
+          
+          
+          
+         if(mButtonStateC != ButtonBoard2.getRawButton(8)) {
+        	 
+        	 if(mButtonStateC) mActionStateC = !mActionStateC;
+        	    mButtonStateC = !mButtonStateC;
+       
+        }
+        if (ElevatorM.getSelectedSensorPosition() > 350){
+        	 Clamp.set(mActionStateC);
+         }else if (mActionStateI) {
+      	 Clamp.set(true);
+        	 mActionStateC = false;
+		 }else {
+        	 Clamp.set(false); 
+         }
+         
+         if (mActionStateC || mElevatorToggleC) {
+        	 Clamp.set(true);
+         }else {
+        	 Clamp.set(false);            
+        
+         }
+      /*   Clamp.set(!(mActionStateC && mElevatorToggleC))
+         
+         
+		if(ButtonBoard1.getRawButton(6)) {
+			mElevatorM = true;
+		}else {
+			mElevatorM = false;
+		}
+		
+		
+		
+		if(ButtonBoard1.getRawButton(7)) {
+			mElevatorMB = true;
+		}else {
+			mElevatorMB = false;
+		}*/
+		
+	}
+	
+}
